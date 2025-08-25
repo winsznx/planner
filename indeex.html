@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>EEE Student Weekly Routine - Pure HTML/JS</title>
+  <!-- TailwindCSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = { darkMode: 'class' };
+  </script>
+  <!-- Initial theme (avoid flash) -->
+  <script>
+    (function(){
+      try {
+        const stored = localStorage.getItem('theme');
+        const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+        const useDark = stored ? stored === 'dark' : prefersDark;
+        if (useDark) document.documentElement.classList.add('dark');
+      } catch (_) {}
+    })();
+  </script>
+  <!-- Lucide Icons CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body class="bg-gradient-to-br from-indigo-50 to-blue-100 dark:from-gray-900 dark:to-gray-950 min-h-screen text-gray-900 dark:text-gray-100">
+  <div class="max-w-5xl mx-auto p-6">
+    <div class="bg-white dark:bg-gray-900 rounded-lg shadow-lg p-6 mb-6">
+      <div class="flex justify-between items-center mb-6">
+        <h1 class="text-3xl font-bold text-gray-800 dark:text-gray-100">EEE Student Weekly Routine</h1>
+        <div class="flex items-center gap-4">
+          <p class="text-sm text-gray-600 dark:text-gray-300">Electrical/Electronic Engineering Schedule</p>
+          <!-- Dark/Light toggle -->
+          <button id="theme-toggle" class="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-100 hover:bg-gray-300 dark:hover:bg-gray-600" title="Toggle dark mode">
+            <i id="theme-icon" data-lucide="moon" class="w-4 h-4"></i>
+            <span class="text-sm">Theme</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Day Selector -->
+      <div class="mb-6">
+        <div id="day-buttons" class="flex flex-wrap gap-2 justify-center"></div>
+      </div>
+
+      <!-- Progress Bar -->
+      <div class="mb-6">
+        <div class="flex justify-between items-center mb-2">
+          <span id="progress-label" class="text-sm font-medium text-gray-700 dark:text-gray-300">Monday Progress</span>
+          <span id="progress-count" class="text-sm text-gray-600 dark:text-gray-400">0/0 tasks (0%)</span>
+        </div>
+        <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3">
+          <div id="progress-bar" class="bg-gradient-to-r from-green-400 to-blue-500 h-3 rounded-full transition-all duration-300" style="width: 0%"></div>
+        </div>
+      </div>
+
+      <!-- Quick Stats -->
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <div class="bg-blue-50 dark:bg-blue-900/40 p-3 rounded-lg text-center">
+          <div id="academic-count" class="text-lg font-bold text-blue-600 dark:text-blue-300">0</div>
+          <div class="text-sm text-gray-600 dark:text-gray-300">Academic Tasks</div>
+        </div>
+        <div class="bg-green-50 dark:bg-green-900/40 p-3 rounded-lg text-center">
+          <div class="text-lg font-bold text-green-600 dark:text-green-300">3x/week</div>
+          <div class="text-sm text-gray-600 dark:text-gray-300">Gym Sessions</div>
+        </div>
+        <div class="bg-purple-50 dark:bg-purple-900/40 p-3 rounded-lg text-center">
+          <div class="text-lg font-bold text-purple-600 dark:text-purple-300">Daily</div>
+          <div class="text-sm text-gray-600 dark:text-gray-300">Trading & Reading</div>
+        </div>
+        <div class="bg-orange-50 dark:bg-orange-900/40 p-3 rounded-lg text-center">
+          <div class="text-lg font-bold text-orange-600 dark:text-orange-300">7:30-9 AM</div>
+          <div class="text-sm text-gray-600 dark:text-gray-300">London Session</div>
+        </div>
+      </div>
+
+      <!-- Add New Task -->
+      <div class="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg mb-6">
+        <h3 id="add-task-title" class="font-semibold mb-3 text-gray-800 dark:text-gray-200">Add Task to Monday</h3>
+        <div class="grid grid-cols-1 md:grid-cols-5 gap-3">
+          <input id="new-time" type="time" class="border rounded px-3 py-2 dark:bg-gray-700 dark:border-gray-600" />
+          <input id="new-desc" type="text" placeholder="Task description" class="border rounded px-3 py-2 md:col-span-2 dark:bg-gray-700 dark:border-gray-600" />
+          <select id="new-category" class="border rounded px-3 py-2 dark:bg-gray-700 dark:border-gray-600">
+            <option value="academics">Academics</option>
+            <option value="work">Trading</option>
+            <option value="health">Health</option>
+            <option value="wellness">Wellness</option>
+            <option value="personal">Personal</option>
+            <option value="productivity">Planning</option>
+          </select>
+          <select id="new-priority" class="border rounded px-3 py-2 dark:bg-gray-700 dark:border-gray-600">
+            <option value="high">High Priority</option>
+            <option value="medium">Medium Priority</option>
+            <option value="low">Low Priority</option>
+          </select>
+        </div>
+        <button id="add-btn" class="mt-3 bg-blue-500 dark:bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-600 dark:hover:bg-blue-500 inline-flex items-center gap-2">
+          <i data-lucide="plus" class="w-4 h-4"></i>
+          <span>Add Task</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Routine List -->
+    <div id="routine-list" class="space-y-3"></div>
+
+    <!-- Reset Button -->
+    <div class="mt-8 text-center">
+      <button id="reset-btn" class="bg-gray-500 text-white px-6 py-2 rounded hover:bg-gray-600">
+        Reset Monday Tasks
+      </button>
+    </div>
+  </div>
+
+  <script>
+    // --- Data & Config ---
+    const categories = {
+      academics:    { label: 'Academics',    color: 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-200' },
+      work:         { label: 'Trading',      color: 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-200' },
+      health:       { label: 'Health',       color: 'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-200' },
+      wellness:     { label: 'Wellness',     color: 'bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-200' },
+      personal:     { label: 'Personal',     color: 'bg-pink-100 text-pink-800 dark:bg-pink-900/40 dark:text-pink-200' },
+      productivity: { label: 'Planning',     color: 'bg-orange-100 text-orange-800 dark:bg-orange-900/40 dark:text-orange-200' }
+    };
+
+    const priorityColors = {
+      high: 'border-l-red-400',
+      medium: 'border-l-yellow-400',
+      low: 'border-l-green-400'
+    };
+
+    const days = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+
+    const weeklySchedule = {
+      'Monday': [
+        { id: 1, time: '05:30', task: 'Wake up & Morning prayer', category: 'wellness', completed: false, priority: 'high' },
+        { id: 2, time: '06:00', task: 'Morning meditation (10 mins)', category: 'wellness', completed: false, priority: 'medium' },
+        { id: 3, time: '06:15', task: 'Gym workout', category: 'health', completed: false, priority: 'high' },
+        { id: 4, time: '07:15', task: 'Shower & get ready', category: 'health', completed: false, priority: 'medium' },
+        { id: 5, time: '07:30', task: 'Trading - London session (multitask)', category: 'work', completed: false, priority: 'high' },
+        { id: 6, time: '07:45', task: 'Breakfast', category: 'health', completed: false, priority: 'medium' },
+        { id: 7, time: '08:00', task: 'EEE 306 (SESE LT)', category: 'academics', completed: false, priority: 'high' },
+        { id: 8, time: '10:00', task: 'EEE 312 PRACTICAL (INSTALLATION LAB)', category: 'academics', completed: false, priority: 'high' },
+        { id: 9, time: '12:00', task: 'EEE 304 (SESE LT)', category: 'academics', completed: false, priority: 'high' },
+        { id: 10, time: '14:00', task: 'Lunch break', category: 'health', completed: false, priority: 'medium' },
+        { id: 11, time: '14:30', task: 'Lock in - Study time', category: 'academics', completed: false, priority: 'high' },
+        { id: 12, time: '16:00', task: 'MNE 312 (ETF)', category: 'academics', completed: false, priority: 'high' },
+        { id: 13, time: '18:00', task: 'Dinner', category: 'health', completed: false, priority: 'medium' },
+        { id: 14, time: '19:00', task: 'Lock in - Assignment/Study', category: 'academics', completed: false, priority: 'high' },
+        { id: 15, time: '21:00', task: 'Read book (5 pages minimum)', category: 'personal', completed: false, priority: 'medium' },
+        { id: 16, time: '22:00', task: 'Review trades', category: 'work', completed: false, priority: 'high' },
+        { id: 17, time: '23:00', task: 'Prepare for tomorrow & sleep', category: 'wellness', completed: false, priority: 'medium' }
+      ],
+      'Tuesday': [
+        { id: 1, time: '05:30', task: 'Wake up & Morning prayer', category: 'wellness', completed: false, priority: 'high' },
+        { id: 2, time: '06:00', task: 'Morning meditation (10 mins)', category: 'wellness', completed: false, priority: 'medium' },
+        { id: 3, time: '06:30', task: 'Morning walk/light exercise', category: 'health', completed: false, priority: 'medium' },
+        { id: 4, time: '07:15', task: 'Shower & get ready', category: 'health', completed: false, priority: 'medium' },
+        { id: 5, time: '07:30', task: 'Trading - London session (multitask)', category: 'work', completed: false, priority: 'high' },
+        { id: 6, time: '07:45', task: 'Breakfast', category: 'health', completed: false, priority: 'medium' },
+        { id: 7, time: '08:30', task: 'Lock in - Pre-class preparation', category: 'academics', completed: false, priority: 'high' },
+        { id: 8, time: '10:00', task: 'EEE 306 PRACTICAL (OGOMUDIA INSTALLATION LAB)', category: 'academics', completed: false, priority: 'high' },
+        { id: 9, time: '12:00', task: 'EEE 308 PRACTICAL (CONTROL LAB)', category: 'academics', completed: false, priority: 'high' },
+        { id: 10, time: '15:00', task: 'Late lunch', category: 'health', completed: false, priority: 'medium' },
+        { id: 11, time: '16:00', task: 'EEE 308 (SESE LT)', category: 'academics', completed: false, priority: 'high' },
+        { id: 12, time: '18:00', task: 'Dinner', category: 'health', completed: false, priority: 'medium' },
+        { id: 13, time: '19:00', task: 'Lock in - Study/Assignment time', category: 'academics', completed: false, priority: 'high' },
+        { id: 14, time: '21:00', task: 'Read book (5 pages minimum)', category: 'personal', completed: false, priority: 'medium' },
+        { id: 15, time: '22:00', task: 'Review trades', category: 'work', completed: false, priority: 'high' },
+        { id: 16, time: '23:00', task: 'Prepare for tomorrow & sleep', category: 'wellness', completed: false, priority: 'medium' }
+      ],
+      'Wednesday': [
+        { id: 1, time: '05:30', task: 'Wake up & Morning prayer', category: 'wellness', completed: false, priority: 'high' },
+        { id: 2, time: '06:00', task: 'Morning meditation (10 mins)', category: 'wellness', completed: false, priority: 'medium' },
+        { id: 3, time: '06:15', task: 'Gym workout', category: 'health', completed: false, priority: 'high' },
+        { id: 4, time: '07:15', task: 'Shower & get ready', category: 'health', completed: false, priority: 'medium' },
+        { id: 5, time: '07:30', task: 'Trading - London session (multitask)', category: 'work', completed: false, priority: 'high' },
+        { id: 6, time: '07:45', task: 'Breakfast', category: 'health', completed: false, priority: 'medium' },
+        { id: 7, time: '08:00', task: 'EEE 312 (LT 2)', category: 'academics', completed: false, priority: 'high' },
+        { id: 8, time: '10:00', task: 'EEE 314 (SESE LR)', category: 'academics', completed: false, priority: 'high' },
+        { id: 9, time: '12:00', task: 'Lunch break', category: 'health', completed: false, priority: 'medium' },
+        { id: 10, time: '13:00', task: 'Lock in - Deep study session', category: 'academics', completed: false, priority: 'high' },
+        { id: 11, time: '16:00', task: 'Break & snack', category: 'health', completed: false, priority: 'low' },
+        { id: 12, time: '16:30', task: 'Lock in - Assignment/Project work', category: 'academics', completed: false, priority: 'high' },
+        { id: 13, time: '18:00', task: 'Dinner', category: 'health', completed: false, priority: 'medium' },
+        { id: 14, time: '19:00', task: 'Personal time/Rest', category: 'wellness', completed: false, priority: 'low' },
+        { id: 15, time: '21:00', task: 'Read book (5 pages minimum)', category: 'personal', completed: false, priority: 'medium' },
+        { id: 16, time: '22:00', task: 'Review trades', category: 'work', completed: false, priority: 'high' },
+        { id: 17, time: '23:00', task: 'Prepare for tomorrow & sleep', category: 'wellness', completed: false, priority: 'medium' }
+      ],
+      'Thursday': [
+        { id: 1, time: '05:30', task: 'Wake up & Morning prayer', category: 'wellness', completed: false, priority: 'high' },
+        { id: 2, time: '06:00', task: 'Morning meditation (10 mins)', category: 'wellness', completed: false, priority: 'medium' },
+        { id: 3, time: '06:15', task: 'Gym workout', category: 'health', completed: false, priority: 'high' },
+        { id: 4, time: '07:15', task: 'Shower & get ready', category: 'health', completed: false, priority: 'medium' },
+        { id: 5, time: '07:30', task: 'Trading - London session (multitask)', category: 'work', completed: false, priority: 'high' },
+        { id: 6, time: '07:45', task: 'Breakfast', category: 'health', completed: false, priority: 'medium' },
+        { id: 7, time: '08:00', task: 'EEE 304 (SESE LT)', category: 'academics', completed: false, priority: 'high' },
+        { id: 8, time: '10:00', task: 'EEE 302 PRACTICAL (OGOMUDIA LAB)', category: 'academics', completed: false, priority: 'high' },
+        { id: 9, time: '12:00', task: 'EEE 302 (SESE LT)', category: 'academics', completed: false, priority: 'high' },
+        { id: 10, time: '14:00', task: 'MTS 316 (OLD 1K CAP)', category: 'academics', completed: false, priority: 'high' },
+        { id: 11, time: '16:00', task: 'EEE 308 (SESE LT)', category: 'academics', completed: false, priority: 'high' },
+        { id: 12, time: '18:00', task: 'Dinner', category: 'health', completed: false, priority: 'medium' },
+        { id: 13, time: '19:00', task: 'Lock in - Review notes from today', category: 'academics', completed: false, priority: 'high' },
+        { id: 14, time: '21:00', task: 'Read book (5 pages minimum)', category: 'personal', completed: false, priority: 'medium' },
+        { id: 15, time: '22:00', task: 'Review trades', category: 'work', completed: false, priority: 'high' },
+        { id: 16, time: '23:00', task: 'Prepare for tomorrow & sleep', category: 'wellness', completed: false, priority: 'medium' }
+      ],
+      'Friday': [
+        { id: 1, time: '05:30', task: 'Wake up & Morning prayer', category: 'wellness', completed: false, priority: 'high' },
+        { id: 2, time: '06:00', task: 'Morning meditation (10 mins)', category: 'wellness', completed: false, priority: 'medium' },
+        { id: 3, time: '06:30', task: 'Morning walk/light exercise', category: 'health', completed: false, priority: 'medium' },
+        { id: 4, time: '07:15', task: 'Shower & get ready', category: 'health', completed: false, priority: 'medium' },
+        { id: 5, time: '07:30', task: 'Trading - London session (multitask)', category: 'work', completed: false, priority: 'high' },
+        { id: 6, time: '07:45', task: 'Breakfast', category: 'health', completed: false, priority: 'medium' },
+        { id: 7, time: '09:00', task: 'Lock in - Week review & catch up', category: 'academics', completed: false, priority: 'high' },
+        { id: 8, time: '12:00', task: 'Lunch break', category: 'health', completed: false, priority: 'medium' },
+        { id: 9, time: '13:00', task: 'Lock in - Assignment completion', category: 'academics', completed: false, priority: 'high' },
+        { id: 10, time: '16:00', task: 'Break & snack', category: 'health', completed: false, priority: 'low' },
+        { id: 11, time: '16:30', task: 'Personal projects/Extra study', category: 'academics', completed: false, priority: 'medium' },
+        { id: 12, time: '18:00', task: 'Dinner', category: 'health', completed: false, priority: 'medium' },
+        { id: 13, time: '19:00', task: 'Weekend planning & relaxation', category: 'wellness', completed: false, priority: 'low' },
+        { id: 14, time: '21:00', task: 'Read book (5 pages minimum)', category: 'personal', completed: false, priority: 'medium' },
+        { id: 15, time: '22:00', task: 'Review trades', category: 'work', completed: false, priority: 'high' },
+        { id: 16, time: '23:00', task: 'Prepare for tomorrow & sleep', category: 'wellness', completed: false, priority: 'medium' }
+      ],
+      'Saturday': [
+        { id: 1, time: '06:30', task: 'Wake up & Morning prayer', category: 'wellness', completed: false, priority: 'medium' },
+        { id: 2, time: '07:00', task: 'Morning meditation (15 mins)', category: 'wellness', completed: false, priority: 'medium' },
+        { id: 3, time: '07:30', task: 'Trading - London session (multitask)', category: 'work', completed: false, priority: 'high' },
+        { id: 4, time: '08:00', task: 'Breakfast', category: 'health', completed: false, priority: 'medium' },
+        { id: 5, time: '09:00', task: 'Lock in - Deep study/Research', category: 'academics', completed: false, priority: 'high' },
+        { id: 6, time: '12:00', task: 'Lunch break', category: 'health', completed: false, priority: 'medium' },
+        { id: 7, time: '13:00', task: 'Personal time/Errands', category: 'personal', completed: false, priority: 'low' },
+        { id: 8, time: '15:00', task: 'Lock in - Project work', category: 'academics', completed: false, priority: 'medium' },
+        { id: 9, time: '18:00', task: 'Dinner', category: 'health', completed: false, priority: 'medium' },
+        { id: 10, time: '19:00', task: 'Social time/Recreation', category: 'wellness', completed: false, priority: 'low' },
+        { id: 11, time: '21:00', task: 'Read book (5 pages minimum)', category: 'personal', completed: false, priority: 'medium' },
+        { id: 12, time: '22:00', task: 'Review trades', category: 'work', completed: false, priority: 'high' },
+        { id: 13, time: '23:30', task: 'Sleep', category: 'wellness', completed: false, priority: 'medium' }
+      ],
+      'Sunday': [
+        { id: 1, time: '07:00', task: 'Wake up & Extended prayer', category: 'wellness', completed: false, priority: 'high' },
+        { id: 2, time: '07:30', task: 'Morning meditation (15 mins)', category: 'wellness', completed: false, priority: 'medium' },
+        { id: 3, time: '08:00', task: 'Breakfast', category: 'health', completed: false, priority: 'medium' },
+        { id: 4, time: '09:00', task: 'Week planning & goal setting', category: 'productivity', completed: false, priority: 'high' },
+        { id: 5, time: '10:00', task: 'Lock in - Light study/Review', category: 'academics', completed: false, priority: 'medium' },
+        { id: 6, time: '12:00', task: 'Lunch break', category: 'health', completed: false, priority: 'medium' },
+        { id: 7, time: '13:00', task: 'Rest/Personal time', category: 'wellness', completed: false, priority: 'low' },
+        { id: 8, time: '16:00', task: 'Lock in - Prep for Monday', category: 'academics', completed: false, priority: 'high' },
+        { id: 9, time: '18:00', task: 'Dinner', category: 'health', completed: false, priority: 'medium' },
+        { id: 10, time: '19:00', task: 'Family time/Socializing', category: 'personal', completed: false, priority: 'medium' },
+        { id: 11, time: '21:00', task: 'Read book (5 pages minimum)', category: 'personal', completed: false, priority: 'medium' },
+        { id: 12, time: '22:00', task: 'Review trades & week analysis', category: 'work', completed: false, priority: 'high' },
+        { id: 13, time: '23:00', task: 'Prepare for tomorrow & sleep', category: 'wellness', completed: false, priority: 'medium' }
+      ]
+    };
+
+    // --- State ---
+    let currentDay = 'Monday';
+
+    // --- Elements ---
+    const dayButtonsEl = document.getElementById('day-buttons');
+    const progressLabelEl = document.getElementById('progress-label');
+    const progressCountEl = document.getElementById('progress-count');
+    const progressBarEl = document.getElementById('progress-bar');
+    const academicCountEl = document.getElementById('academic-count');
+    const addTitleEl = document.getElementById('add-task-title');
+    const routineListEl = document.getElementById('routine-list');
+    const resetBtn = document.getElementById('reset-btn');
+
+    const newTimeEl = document.getElementById('new-time');
+    const newDescEl = document.getElementById('new-desc');
+    const newCategoryEl = document.getElementById('new-category');
+    const newPriorityEl = document.getElementById('new-priority');
+    const addBtn = document.getElementById('add-btn');
+
+    const themeToggleBtn = document.getElementById('theme-toggle');
+    const themeIcon = document.getElementById('theme-icon');
+
+    // --- Helpers ---
+    function sortByTime(list) {
+      return [...list].sort((a, b) => a.time.localeCompare(b.time));
+    }
+
+    function renderDayButtons() {
+      dayButtonsEl.innerHTML = '';
+      days.forEach(day => {
+        const btn = document.createElement('button');
+        btn.textContent = day;
+        btn.className = `px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+          currentDay === day
+            ? 'bg-blue-500 dark:bg-blue-600 text-white shadow-lg'
+            : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600'
+        }`;
+        btn.addEventListener('click', () => changeDay(day));
+        dayButtonsEl.appendChild(btn);
+      });
+    }
+
+    function updateProgressAndStats() {
+      const routines = weeklySchedule[currentDay] || [];
+      const completedCount = routines.filter(r => r.completed).length;
+      const percent = routines.length ? Math.round((completedCount / routines.length) * 100) : 0;
+      progressLabelEl.textContent = `${currentDay} Progress`;
+      progressCountEl.textContent = `${completedCount}/${routines.length} tasks (${percent}%)`;
+      progressBarEl.style.width = percent + '%';
+      academicCountEl.textContent = routines.filter(r => r.category === 'academics').length;
+      addTitleEl.textContent = `Add Task to ${currentDay}`;
+      resetBtn.textContent = `Reset ${currentDay} Tasks`;
+    }
+
+    function icon(name, classes = 'w-4 h-4') {
+      const i = document.createElement('i');
+      i.setAttribute('data-lucide', name);
+      i.className = classes;
+      return i;
+    }
+
+    function renderTaskList() {
+      const routines = sortByTime(weeklySchedule[currentDay] || []);
+      routineListEl.innerHTML = '';
+
+      routines.forEach(routine => {
+        const card = document.createElement('div');
+        card.className = `bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 border-l-4 ${priorityColors[routine.priority]} ${
+          routine.completed ? 'opacity-75' : ''
+        }`;
+
+        const row = document.createElement('div');
+        row.className = 'flex items-center justify-between';
+
+        const left = document.createElement('div');
+        left.className = 'flex items-center gap-4 flex-1';
+
+        // toggle complete button
+        const toggleBtn = document.createElement('button');
+        toggleBtn.className = 'flex-shrink-0';
+        toggleBtn.addEventListener('click', () => toggleComplete(routine.id));
+        toggleBtn.appendChild(icon(routine.completed ? 'check-circle' : 'circle', `w-6 h-6 ${routine.completed ? 'text-green-500' : 'text-gray-400'}`));
+
+        // time
+        const timeWrap = document.createElement('div');
+        timeWrap.className = 'flex items-center gap-2 text-gray-600 dark:text-gray-300';
+        timeWrap.appendChild(icon('clock', 'w-4 h-4'));
+        const timeText = document.createElement('span');
+        timeText.className = 'font-mono font-medium text-lg';
+        timeText.textContent = routine.time;
+        timeWrap.appendChild(timeText);
+
+        // task text
+        const taskWrap = document.createElement('div');
+        taskWrap.className = 'flex-1';
+        const taskTitle = document.createElement('h3');
+        taskTitle.className = `font-medium ${routine.completed ? 'line-through text-gray-500 dark:text-gray-400' : 'text-gray-800 dark:text-gray-100'}`;
+        taskTitle.textContent = routine.task;
+        taskWrap.appendChild(taskTitle);
+
+        // category pill
+        const cat = document.createElement('span');
+        cat.className = `px-3 py-1 rounded-full text-xs font-medium ${categories[routine.category].color}`;
+        cat.textContent = categories[routine.category].label;
+
+        left.appendChild(toggleBtn);
+        left.appendChild(timeWrap);
+        left.appendChild(taskWrap);
+        left.appendChild(cat);
+
+        // priority star (only for high)
+        if (routine.priority === 'high') {
+          left.appendChild(icon('star', 'w-4 h-4 text-red-400'));
+        }
+
+        // delete button
+        const delBtn = document.createElement('button');
+        delBtn.className = 'text-gray-400 hover:text-red-500 ml-2';
+        delBtn.addEventListener('click', () => deleteTask(routine.id));
+        delBtn.appendChild(icon('trash-2', 'w-4 h-4'));
+
+        row.appendChild(left);
+        row.appendChild(delBtn);
+        card.appendChild(row);
+        routineListEl.appendChild(card);
+      });
+
+      // hydrate/refresh lucide icons after dynamic render
+      if (window.lucide && lucide.createIcons) {
+        lucide.createIcons();
+      }
+    }
+
+    // --- Actions ---
+    function changeDay(day) {
+      currentDay = day;
+      renderDayButtons();
+      updateProgressAndStats();
+      renderTaskList();
+    }
+
+    function addTask() {
+      const time = newTimeEl.value.trim();
+      const task = newDescEl.value.trim();
+      const category = newCategoryEl.value;
+      const priority = newPriorityEl.value;
+      if (!time || !task) return;
+
+      const newItem = {
+        id: Date.now(),
+        time, task, category, priority,
+        completed: false
+      };
+      weeklySchedule[currentDay] = [...(weeklySchedule[currentDay] || []), newItem];
+
+      // reset inputs
+      newTimeEl.value = '';
+      newDescEl.value = '';
+      newCategoryEl.value = 'academics';
+      newPriorityEl.value = 'medium';
+
+      updateProgressAndStats();
+      renderTaskList();
+    }
+
+    function deleteTask(id) {
+      weeklySchedule[currentDay] = (weeklySchedule[currentDay] || []).filter(r => r.id !== id);
+      updateProgressAndStats();
+      renderTaskList();
+    }
+
+    function toggleComplete(id) {
+      weeklySchedule[currentDay] = (weeklySchedule[currentDay] || []).map(r => r.id === id ? { ...r, completed: !r.completed } : r);
+      updateProgressAndStats();
+      renderTaskList();
+    }
+
+    function resetDay() {
+      weeklySchedule[currentDay] = (weeklySchedule[currentDay] || []).map(r => ({ ...r, completed: false }));
+      updateProgressAndStats();
+      renderTaskList();
+    }
+
+    // --- Theme Toggle ---
+    function setThemeIcon(){
+      const isDark = document.documentElement.classList.contains('dark');
+      themeIcon.setAttribute('data-lucide', isDark ? 'sun' : 'moon');
+      if (window.lucide && lucide.createIcons) lucide.createIcons();
+    }
+
+    themeToggleBtn.addEventListener('click', () => {
+      const root = document.documentElement;
+      const nowDark = !root.classList.contains('dark');
+      root.classList.toggle('dark');
+      try { localStorage.setItem('theme', nowDark ? 'dark' : 'light'); } catch (_) {}
+      setThemeIcon();
+    });
+
+    // --- Event Listeners ---
+    addBtn.addEventListener('click', addTask);
+    resetBtn.addEventListener('click', resetDay);
+
+    // --- Init ---
+    renderDayButtons();
+    updateProgressAndStats();
+    renderTaskList();
+    if (window.lucide && lucide.createIcons) {
+      lucide.createIcons();
+    }
+    setThemeIcon();
+  </script>
+</body>
+</html>
